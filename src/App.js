@@ -77,48 +77,64 @@ function App() {
     }));
   };
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Handle form submission - FIXED VERSION
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!formData.title || !formData.description || !formData.image) {
+    setMessage('Please fill all fields and select an image');
+    return;
+  }
+
+  setLoading(true);
+  setMessage('');
+
+  try {
+    const data = new FormData();
+    data.append('title', formData.title);
+    data.append('description', formData.description);
+    data.append('image', formData.image);
+
+    console.log('📤 Sending to:', `${API_BASE}/content`); // ✅ Check this URL
     
-    if (!formData.title || !formData.description || !formData.image) {
-      setMessage('Please fill all fields and select an image');
-      return;
-    }
-
-    setLoading(true);
-    setMessage('');
-
-    try {
-      const data = new FormData();
-      data.append('title', formData.title);
-      data.append('description', formData.description);
-      data.append('image', formData.image);
-
-      const response = await axios.post(`${API_BASE}/content`, data, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (response.data.success) {
-        setMessage('✅ Content added successfully!');
-        setFormData({ title: '', description: '', image: null });
-        
-        // Clear file input
-        const fileInput = document.getElementById('imageInput');
-        if (fileInput) fileInput.value = '';
-        
-        // Update content list immediately
-        setContent(prevContent => [response.data.data, ...prevContent]);
+    // ✅ CORRECT ENDPOINT
+    const response = await axios.post(`${API_BASE}/content`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
-    } catch (error) {
-      console.error('Error adding content:', error);
-      setMessage('❌ Error adding content: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
+    });
+
+    console.log('✅ Server response:', response.data);
+
+    if (response.data.success) {
+      setMessage('✅ Content added successfully!');
+      setFormData({ 
+        title: '', 
+        description: '', 
+        image: null 
+      });
+      
+      // Clear file input
+      const fileInput = document.getElementById('imageInput');
+      if (fileInput) fileInput.value = '';
+      
+      // Update content list immediately
+      setContent(prevContent => [response.data.data, ...prevContent]);
     }
-  };
+  } catch (error) {
+    console.error('❌ Error adding content:', error);
+    console.error('❌ Full error details:', error.response);
+    
+    // Better error message
+    if (error.response?.status === 404) {
+      setMessage('❌ API endpoint not found. Check if backend has /api/content route.');
+    } else {
+      setMessage('❌ Error adding content: ' + (error.response?.data?.message || error.message));
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Delete content
   const handleDelete = async (id) => {
